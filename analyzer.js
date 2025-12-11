@@ -184,6 +184,14 @@ findViolationsGrouped(
     '⚠️ Command injection risk'
 );
 
+// New: SQL Injection detection
+findViolationsGrouped(
+    'executeQuery\\s*\\([^)]*\\+[^)]*\\)|executeSql\\s*\\([^)]*\\+',
+    'SQL Injection vulnerability',
+    'critical',
+    '🔴 Use PreparedStatement'
+);
+
 // Medium Security Issues
 findViolationsGrouped(
     'http://',
@@ -257,6 +265,14 @@ findViolationsGrouped(
     'Props mutation',
     'critical',
     '🔴 Props are immutable'
+);
+
+// New: Direct DOM manipulation detection
+findViolationsGrouped(
+    'document\\.(getElementById|querySelector|getElementsBy)',
+    'Direct DOM manipulation',
+    'high',
+    '⚠️ Use React refs or state'
 );
 
 // High React Issues
