@@ -24,41 +24,41 @@ java_issues=0
 react_issues=0
 
 # Security checks
-echo "🔒 SECURITY ANALYSIS"
+echo "SECURITY ANALYSIS"
 echo "-------------------"
 
 if grep -q "eval\|exec\|system\|shell_exec\|Runtime\.getRuntime" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: Dangerous function detected (eval/exec/Runtime)"
+    echo "WARNING: Dangerous function detected (eval/exec/Runtime)"
     security_issues=$((security_issues + 1))
 fi
 
-if grep -q "password\s*=\s*['\"]" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: Hardcoded password detected"
+if grep -q "password\s*=\s*['\"']" "$DIFF_FILE"; then
+    echo "WARNING: Hardcoded password detected"
     security_issues=$((security_issues + 1))
 fi
 
-if grep -q "api[_-]?key\s*=\s*['\"]" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: Hardcoded API key detected"
+if grep -q "api[_-]?key\s*=\s*['\"']" "$DIFF_FILE"; then
+    echo "WARNING: Hardcoded API key detected"
     security_issues=$((security_issues + 1))
 fi
 
 if grep -q "dangerouslySetInnerHTML" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: dangerouslySetInnerHTML usage (XSS risk)"
+    echo "WARNING: dangerouslySetInnerHTML usage (XSS risk)"
     security_issues=$((security_issues + 1))
 fi
 
 if grep -q "TODO.*security\|FIXME.*security" "$DIFF_FILE"; then
-    echo "ℹ️  INFO: Security TODO/FIXME found"
+    echo "INFO: Security TODO/FIXME found"
 fi
 
 if [ $security_issues -eq 0 ]; then
-    echo "✅ No obvious security issues detected"
+    echo "OK: No obvious security issues detected"
 fi
 
 echo ""
 
 # Java-specific checks
-echo "☕ JAVA-SPECIFIC ANALYSIS"
+echo "JAVA-SPECIFIC ANALYSIS"
 echo "-------------------------"
 
 if grep -q "System\.out\.println\|System\.err\.println" "$DIFF_FILE"; then
@@ -102,7 +102,7 @@ fi
 echo ""
 
 # React-specific checks
-echo "⚛️  REACT-SPECIFIC ANALYSIS"
+echo "REACT-SPECIFIC ANALYSIS"
 echo "---------------------------"
 
 if grep -q "\.map(.*=>" "$DIFF_FILE" && ! grep -q "key=" "$DIFF_FILE"; then
@@ -154,7 +154,7 @@ echo "================================================"
 echo ""
 
 # General Code Quality checks
-echo "📊 CODE QUALITY ANALYSIS"
+echo "CODE QUALITY ANALYSIS"
 echo "------------------------"
 
 if grep -q "console\.log\|console\.error\|console\.warn" "$DIFF_FILE"; then
@@ -184,7 +184,7 @@ fi
 echo ""
 
 # Performance checks
-echo "⚡ PERFORMANCE ANALYSIS"
+echo "PERFORMANCE ANALYSIS"
 echo "----------------------"
 
 if grep -q "SELECT \*\|select \*" "$DIFF_FILE"; then
@@ -217,7 +217,7 @@ fi
 echo ""
 
 # File size check
-echo "📁 FILE SIZE ANALYSIS"
+echo "FILE SIZE ANALYSIS"
 echo "---------------------"
 
 large_files=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | while read file; do
@@ -239,7 +239,7 @@ echo ""
 
 # Summary
 echo "================================================"
-echo "📋 SUMMARY"
+echo "SUMMARY"
 echo "================================================"
 total_issues=$((security_issues + code_quality_issues + performance_issues + java_issues + react_issues))
 
