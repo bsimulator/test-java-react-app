@@ -11,13 +11,13 @@ if [ ! -f "$DIFF_FILE" ]; then
     exit 1
 fi
 
-# Color codes
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+# No colors for GitHub Actions markdown output
+RED=''
+YELLOW=''
+GREEN=''
+BLUE=''
+CYAN=''
+NC=''
 
 # Array for issues
 declare -a ISSUES_ARRAY
@@ -139,9 +139,9 @@ total_issues=$((security_issues + java_issues + react_issues + code_quality_issu
 
 # Print header
 echo ""
-echo -e "${CYAN}================================================${NC}"
-echo -e "${CYAN}          CODE ANALYSIS REPORT${NC}"
-echo -e "${CYAN}================================================${NC}"
+echo "================================================"
+echo "          CODE ANALYSIS REPORT"
+echo "================================================"
 echo ""
 
 # Print table
@@ -174,29 +174,29 @@ if [ ${#ISSUES_ARRAY[@]} -gt 0 ]; then
         printf "${color}%-12s${NC} %-12s %-25s %-8s %s\n" "$severity_display" "$type" "$filename" "L$line_num" "$message"
     done
 else
-    echo -e "${GREEN}✓ No issues detected!${NC}"
+    echo "No issues detected!"
 fi
 
 echo ""
-echo -e "${CYAN}================================================${NC}"
-echo -e "${CYAN}                  SUMMARY${NC}"
-echo -e "${CYAN}================================================${NC}"
+echo "================================================"
+echo "                  SUMMARY"
+echo "================================================"
 echo ""
 
-printf "%-35s: ${RED}%3d${NC}\n" "Security Issues" "$security_issues"
-printf "%-35s: ${YELLOW}%3d${NC}\n" "Java Issues" "$java_issues"
-printf "%-35s: ${YELLOW}%3d${NC}\n" "React Issues" "$react_issues"
-printf "%-35s: ${CYAN}%3d${NC}\n" "Code Quality Issues" "$code_quality_issues"
-printf "%-35s: ${CYAN}%3d${NC}\n" "Performance Issues" "$performance_issues"
+printf "%-35s: %3d\n" "Security Issues" "$security_issues"
+printf "%-35s: %3d\n" "Java Issues" "$java_issues"
+printf "%-35s: %3d\n" "React Issues" "$react_issues"
+printf "%-35s: %3d\n" "Code Quality Issues" "$code_quality_issues"
+printf "%-35s: %3d\n" "Performance Issues" "$performance_issues"
 echo "---"
 printf "%-35s: " "TOTAL ISSUES"
 
 if [ $total_issues -eq 0 ]; then
-    echo -e "${GREEN}0${NC}"
+    echo "0"
     echo ""
-    echo -e "${GREEN}✓ All checks passed!${NC}"
+    echo "All checks passed!"
 else
-    echo -e "${RED}$total_issues${NC}"
+    echo "$total_issues"
     echo ""
-    echo -e "${YELLOW}⚠ Please review the issues above${NC}"
+    echo "Please review the issues above"
 fi
