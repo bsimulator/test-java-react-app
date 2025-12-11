@@ -1,4 +1,4 @@
-name: AI PR Review
+name: Automated PR Review
 
 on:
   pull_request:
@@ -7,6 +7,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  issues: write
 
 jobs:
   review:
@@ -34,38 +35,34 @@ jobs:
           ./analyzer.sh pr_diff.txt > analysis_result.txt
           cat analysis_result.txt
       
-      - name: AI Code Review
-        uses: anc95/ChatGPT-CodeReview@main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_API_ENDPOINT: https://api.openai.com/v1
-          MODEL: gpt-4-turbo-preview
-          PROMPT: |
-            You are reviewing Java and React code. Focus on:
+      - name: Post Review Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const analysis = fs.readFileSync('analysis_result.txt', 'utf8');
             
-            **Java:**
-            - NullPointerException risks
-            - Resource leaks (unclosed connections, streams)
-            - Thread safety issues
-            - Exception handling
-            - Memory leaks
-            - Best practices (logging, not System.out)
+            const comment = `## 🔍 Automated Code Review Results
             
-            **React:**
-            - Hooks rules violations
-            - Missing key props in lists
-            - State mutations
-            - useEffect dependency issues
-            - Component lifecycle issues
-            - Performance concerns (unnecessary re-renders)
+            ${analysis}
             
-            **General:**
-            - Security vulnerabilities
-            - Logic errors and bugs
-            - Code quality and maintainability
+            ---
             
-            Provide specific, actionable feedback with examples.
-          top_p: 1
-          temperature: 0.3
-          max_tokens: 3000
+            ### 📋 Review Summary
+            
+            This automated review checks for:
+            - 🔒 Security issues (hardcoded secrets, dangerous functions)
+            - ☕ Java best practices (logging, resource management, NPE risks)
+            - ⚛️ React patterns (hooks, state management, performance)
+            - 📊 Code quality (debug statements, deprecated methods)
+            - ⚡ Performance issues (inefficient queries, nested loops)
+            
+            *This is an automated analysis. Please review the findings and address any critical issues.*
+            `;
+            
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
