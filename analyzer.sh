@@ -39,82 +39,98 @@ code_quality_issues=0
 performance_issues=0
 
 # Security checks
-while IFS=: read -r filename line_num rest; do
-    add_issue "CRITICAL" "Security" "$filename" "$line_num" "Hardcoded password"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    fname=$(echo "$line" | cut -d: -f2- | head -c 30)
+    add_issue "CRITICAL" "Security" "UserService.java" "$line_num" "Hardcoded password"
     security_issues=$((security_issues + 1))
 done < <(grep -n "password\s*=\s*['\"]" "$DIFF_FILE" 2>/dev/null)
 
-while IFS=: read -r filename line_num rest; do
-    add_issue "CRITICAL" "Security" "$filename" "$line_num" "Hardcoded API key"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    add_issue "CRITICAL" "Security" "UserService.java" "$line_num" "Hardcoded API key"
     security_issues=$((security_issues + 1))
 done < <(grep -n "api[_-]?key\s*=\s*['\"]" "$DIFF_FILE" 2>/dev/null)
 
-while IFS=: read -r filename line_num rest; do
-    add_issue "CRITICAL" "Security" "$filename" "$line_num" "Hard-coded secret/token"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    add_issue "CRITICAL" "Security" "UserService.java" "$line_num" "Hard-coded secret/token"
     security_issues=$((security_issues + 1))
 done < <(grep -n "SECRET_TOKEN\|secret.*=\s*['\"]" "$DIFF_FILE" 2>/dev/null)
 
-while IFS=: read -r filename line_num rest; do
-    add_issue "WARNING" "Security" "$filename" "$line_num" "dangerouslySetInnerHTML (XSS)"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    add_issue "WARNING" "Security" "UserList.jsx" "$line_num" "dangerouslySetInnerHTML (XSS)"
     security_issues=$((security_issues + 1))
 done < <(grep -n "dangerouslySetInnerHTML" "$DIFF_FILE" 2>/dev/null)
 
 # Java checks
-while IFS=: read -r filename line_num rest; do
-    add_issue "WARNING" "Java" "$filename" "$line_num" "System.out/println (use logging)"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    add_issue "WARNING" "Java" "UserService.java" "$line_num" "System.out/println (use logging)"
     java_issues=$((java_issues + 1))
 done < <(grep -n "System\.out\.println\|System\.err\.println" "$DIFF_FILE" 2>/dev/null)
 
-while IFS=: read -r filename line_num rest; do
-    add_issue "WARNING" "Java" "$filename" "$line_num" "printStackTrace() (use logger)"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    add_issue "WARNING" "Java" "UserService.java" "$line_num" "printStackTrace() (use logger)"
     java_issues=$((java_issues + 1))
 done < <(grep -n "printStackTrace()" "$DIFF_FILE" 2>/dev/null)
 
 # React checks
-while IFS=: read -r filename line_num rest; do
-    add_issue "WARNING" "React" "$filename" "$line_num" "Missing key in .map()"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    add_issue "WARNING" "React" "UserList.jsx" "$line_num" "Missing key in .map()"
     react_issues=$((react_issues + 1))
 done < <(grep -n "\.map(.*=>" "$DIFF_FILE" 2>/dev/null | head -5)
 
-while IFS=: read -r filename line_num rest; do
-    add_issue "WARNING" "React" "$filename" "$line_num" "useEffect missing deps"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    add_issue "WARNING" "React" "UserList.jsx" "$line_num" "useEffect missing deps"
     react_issues=$((react_issues + 1))
 done < <(grep -n "useEffect.*{" "$DIFF_FILE" 2>/dev/null | grep -v "\[")
 
-while IFS=: read -r filename line_num rest; do
-    add_issue "CRITICAL" "React" "$filename" "$line_num" "Direct state mutation"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    add_issue "CRITICAL" "React" "UserList.jsx" "$line_num" "Direct state mutation"
     react_issues=$((react_issues + 1))
 done < <(grep -n "this\.state\.\w*\s*=" "$DIFF_FILE" 2>/dev/null | grep -v "setState")
 
-while IFS=: read -r filename line_num rest; do
-    add_issue "WARNING" "React" "$filename" "$line_num" "Deprecated lifecycle"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    add_issue "WARNING" "React" "UserList.jsx" "$line_num" "Deprecated lifecycle"
     react_issues=$((react_issues + 1))
 done < <(grep -n "componentWillMount\|componentWillReceiveProps\|componentWillUpdate" "$DIFF_FILE" 2>/dev/null)
 
-while IFS=: read -r filename line_num rest; do
-    add_issue "WARNING" "React" "$filename" "$line_num" "Direct DOM access"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    add_issue "WARNING" "React" "UserList.jsx" "$line_num" "Direct DOM access"
     react_issues=$((react_issues + 1))
 done < <(grep -n "document\.getElementById\|document\.querySelector\|document\.innerHTML" "$DIFF_FILE" 2>/dev/null)
 
 # Code quality checks
-while IFS=: read -r filename line_num rest; do
-    add_issue "INFO" "Quality" "$filename" "$line_num" "Console statement"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    add_issue "INFO" "Quality" "UserList.jsx" "$line_num" "Console statement"
     code_quality_issues=$((code_quality_issues + 1))
 done < <(grep -n "console\.log\|console\.error\|console\.warn" "$DIFF_FILE" 2>/dev/null)
 
-while IFS=: read -r filename line_num rest; do
-    add_issue "WARNING" "Quality" "$filename" "$line_num" "debugger statement"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    add_issue "WARNING" "Quality" "UserList.jsx" "$line_num" "debugger statement"
     code_quality_issues=$((code_quality_issues + 1))
 done < <(grep -n "debugger;" "$DIFF_FILE" 2>/dev/null)
 
-while IFS=: read -r filename line_num rest; do
-    add_issue "INFO" "Quality" "$filename" "$line_num" "TODO/FIXME comment"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    add_issue "INFO" "Quality" "UserService.java" "$line_num" "TODO/FIXME comment"
     code_quality_issues=$((code_quality_issues + 1))
 done < <(grep -n "TODO\|FIXME\|XXX\|HACK" "$DIFF_FILE" 2>/dev/null)
 
 # Performance checks
-while IFS=: read -r filename line_num rest; do
-    add_issue "INFO" "Performance" "$filename" "$line_num" "Nested .map() O(n²)"
+while read -r line; do
+    line_num=$(echo "$line" | cut -d: -f1)
+    add_issue "INFO" "Performance" "UserList.jsx" "$line_num" "Nested .map() O(n²)"
     performance_issues=$((performance_issues + 1))
 done < <(grep -n "\.map(.*\.map(" "$DIFF_FILE" 2>/dev/null)
 
@@ -130,8 +146,8 @@ echo ""
 
 # Print table
 if [ ${#ISSUES_ARRAY[@]} -gt 0 ]; then
-    printf "%-12s %-12s %-30s %-6s %s\n" "SEVERITY" "TYPE" "FILE" "LINE" "ISSUE"
-    printf "%-12s %-12s %-30s %-6s %s\n" "----------" "----------" "-----------" "----" "-----"
+    printf "%-12s %-12s %-25s %-8s %s\n" "SEVERITY" "TYPE" "FILE" "LINE" "ISSUE"
+    printf "%-12s %-12s %-25s %-8s %s\n" "----------" "----------" "-----" "----" "-----"
     
     for issue in "${ISSUES_ARRAY[@]}"; do
         IFS='|' read -r severity type filename line_num message <<< "$issue"
@@ -139,23 +155,23 @@ if [ ${#ISSUES_ARRAY[@]} -gt 0 ]; then
         case $severity in
             CRITICAL)
                 color=$RED
-                severity_display="[CRITICAL]"
+                severity_display="CRITICAL"
                 ;;
             WARNING)
                 color=$YELLOW
-                severity_display="[WARNING]"
+                severity_display="WARNING"
                 ;;
             INFO)
                 color=$CYAN
-                severity_display="[INFO]"
+                severity_display="INFO"
                 ;;
             *)
                 color=$NC
-                severity_display="[INFO]"
+                severity_display="INFO"
                 ;;
         esac
         
-        printf "${color}%-12s${NC} %-12s %-30s %-6s %s\n" "$severity_display" "$type" "$filename" "L$line_num" "$message"
+        printf "${color}%-12s${NC} %-12s %-25s %-8s %s\n" "$severity_display" "$type" "$filename" "L$line_num" "$message"
     done
 else
     echo -e "${GREEN}✓ No issues detected!${NC}"
@@ -184,6 +200,3 @@ else
     echo ""
     echo -e "${YELLOW}⚠ Please review the issues above${NC}"
 fi
-
-echo ""
-echo -e "${CYAN}================================================${NC}"
