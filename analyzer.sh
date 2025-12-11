@@ -1,6 +1,6 @@
 #!/bin/bash
 # Enhanced Code Analyzer for PR Review - Java & React
-# With Priority Levels, Line Numbers, and Markdown Formatting
+# With Tabular Format and Code Snippets
 
 DIFF_FILE=$1
 
@@ -16,41 +16,50 @@ medium_issues=0
 low_issues=0
 info_items=0
 
-# Arrays to store issues
+# Arrays to store issues with details
 declare -a critical_list
 declare -a high_list
 declare -a medium_list
 declare -a low_list
 declare -a info_list
 
-# Function to extract line numbers from diff
-get_line_numbers() {
+# Function to extract line numbers and code snippets
+get_violation_details() {
     local pattern=$1
-    grep -n "$pattern" "$DIFF_FILE" 2>/dev/null | cut -d: -f1 | head -5 | tr '\n' ',' | sed 's/,$//'
+    local issue_type=$2
+    
+    # Get matching lines with line numbers
+    grep -n "$pattern" "$DIFF_FILE" 2>/dev/null | head -3 | while IFS=: read -r line_num line_content; do
+        # Clean up the line content - remove leading +/- and trim
+        clean_content=$(echo "$line_content" | sed 's/^[+\-]\s*//' | sed 's/^[[:space:]]*//' | cut -c1-80)
+        if [ -n "$clean_content" ]; then
+            echo "$line_num|$clean_content"
+        fi
+    done
 }
 
-# Function to add issues
-add_critical() {
+# Function to add issues with code snippets
+add_critical_with_code() {
     critical_issues=$((critical_issues + 1))
     critical_list+=("$1")
 }
 
-add_high() {
+add_high_with_code() {
     high_issues=$((high_issues + 1))
     high_list+=("$1")
 }
 
-add_medium() {
+add_medium_with_code() {
     medium_issues=$((medium_issues + 1))
     medium_list+=("$1")
 }
 
-add_low() {
+add_low_with_code() {
     low_issues=$((low_issues + 1))
     low_list+=("$1")
 }
 
-add_info() {
+add_info_with_code() {
     info_items=$((info_items + 1))
     info_list+=("$1")
 }
@@ -69,45 +78,68 @@ echo ""
 
 # Critical Security Issues
 if grep -q "password.*=.*['\"]" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "password.*=.*['\"]")
-    add_critical "**Hardcoded password detected** | Lines: \`$lines\` | ⚠️ Risk: Credential exposure"
+    violation_details=$(get_violation_details "password.*=.*['\"]" "Hardcoded Password")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_critical_with_code "Hardcoded password|$line_num|\`$code_snippet\`|Credential exposure"
+        done <<< "$violation_details"
+    fi
 fi
 
 if grep -q "api.*key.*=.*['\"]" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "api.*key.*=.*['\"]")
-    add_critical "**Hardcoded API key detected** | Lines: \`$lines\` | ⚠️ Risk: Unauthorized access"
+    violation_details=$(get_violation_details "api.*key.*=.*['\"]" "Hardcoded API Key")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_critical_with_code "Hardcoded API key|$line_num|\`$code_snippet\`|Unauthorized access"
+        done <<< "$violation_details"
+    fi
 fi
 
 if grep -q "private.*key\|secret.*key\|token.*=.*['\"]" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "private.*key\|secret.*key\|token.*=")
-    add_critical "**Hardcoded secret/token detected** | Lines: \`$lines\` | ⚠️ Risk: Security breach"
+    violation_details=$(get_violation_details "private.*key\|secret.*key\|token.*=" "Hardcoded Secret")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_critical_with_code "Hardcoded secret/token|$line_num|\`$code_snippet\`|Security breach"
+        done <<< "$violation_details"
+    fi
 fi
 
 # High Security Issues
 if grep -q "dangerouslySetInnerHTML" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "dangerouslySetInnerHTML")
-    add_high "**XSS vulnerability** (dangerouslySetInnerHTML) | Lines: \`$lines\` | ⚠️ Risk: Cross-site scripting"
+    violation_details=$(get_violation_details "dangerouslySetInnerHTML" "XSS Vulnerability")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_high_with_code "XSS vulnerability (dangerouslySetInnerHTML)|$line_num|\`$code_snippet\`|Cross-site scripting"
+        done <<< "$violation_details"
+    fi
 fi
 
 if grep -q "eval.*(" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "eval.*(")
-    add_high "**Dangerous eval() usage** | Lines: \`$lines\` | ⚠️ Risk: Code injection"
+    violation_details=$(get_violation_details "eval.*(" "Dangerous eval")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_high_with_code "Dangerous eval() usage|$line_num|\`$code_snippet\`|Code injection"
+        done <<< "$violation_details"
+    fi
 fi
 
 if grep -q "innerHTML.*=" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "innerHTML.*=")
-    add_high "**innerHTML usage detected** | Lines: \`$lines\` | ⚠️ Risk: Potential XSS"
-fi
-
-if grep -q "Runtime\.getRuntime\|exec\|system(" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "Runtime\.getRuntime\|exec\|system")
-    add_high "**System command execution** | Lines: \`$lines\` | ⚠️ Risk: Command injection"
+    violation_details=$(get_violation_details "innerHTML.*=" "innerHTML Usage")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_high_with_code "innerHTML usage|$line_num|\`$code_snippet\`|Potential XSS"
+        done <<< "$violation_details"
+    fi
 fi
 
 # Medium Security Issues
 if grep -q "http://" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "http://")
-    add_medium "**Insecure HTTP URL** | Lines: \`$lines\` | 💡 Recommendation: Use HTTPS"
+    violation_details=$(get_violation_details "http://" "Insecure HTTP")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_medium_with_code "Insecure HTTP URL|$line_num|\`$code_snippet\`|Use HTTPS"
+        done <<< "$violation_details"
+    fi
 fi
 
 echo ""
@@ -118,48 +150,60 @@ echo ""
 
 # Critical Java Issues
 if grep -q "\.equals.*null\|null.*\.equals" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "\.equals.*null\|null.*\.equals")
-    add_critical "**NullPointerException risk** | Lines: \`$lines\` | 💡 Use: \`Objects.equals()\` or null check first"
-fi
-
-if grep -q "catch.*Exception.*{.*}" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "catch.*Exception")
-    add_critical "**Empty catch block** | Lines: \`$lines\` | ⚠️ Issue: Swallows exceptions silently"
-fi
-
-# High Java Issues
-if grep -q "Connection\|Statement\|ResultSet" "$DIFF_FILE"; then
-    if ! grep -q "try-with-resources\|\.close()\|finally" "$DIFF_FILE"; then
-        lines=$(get_line_numbers "Connection\|Statement\|ResultSet")
-        add_high "**Resource leak risk** | Lines: \`$lines\` | 💡 Solution: Use try-with-resources"
+    violation_details=$(get_violation_details "\.equals.*null\|null.*\.equals" "NPE Risk")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_critical_with_code "NullPointerException risk|$line_num|\`$code_snippet\`|Use Objects.equals()"
+        done <<< "$violation_details"
     fi
 fi
 
+if grep -q "catch.*Exception.*{.*}" "$DIFF_FILE"; then
+    violation_details=$(get_violation_details "catch.*Exception" "Empty Catch")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_critical_with_code "Empty catch block|$line_num|\`$code_snippet\`|Swallows exceptions"
+        done <<< "$violation_details"
+    fi
+fi
+
+# High Java Issues
 if grep -q "new Thread(" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "new Thread")
-    add_high "**Unmanaged thread creation** | Lines: \`$lines\` | 💡 Use: ExecutorService instead"
+    violation_details=$(get_violation_details "new Thread" "Unmanaged Thread")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_high_with_code "Unmanaged thread creation|$line_num|\`$code_snippet\`|Use ExecutorService"
+        done <<< "$violation_details"
+    fi
 fi
 
 # Medium Java Issues
 if grep -q "System\.out\.println\|System\.err\.println" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "System\.out\.println\|System\.err\.println")
-    add_medium "**System.out usage** | Lines: \`$lines\` | 💡 Use: Logger (SLF4J/Log4j)"
+    violation_details=$(get_violation_details "System\.out\.println\|System\.err\.println" "System.out")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_medium_with_code "System.out usage|$line_num|\`$code_snippet\`|Use Logger"
+        done <<< "$violation_details"
+    fi
 fi
 
 if grep -q "printStackTrace()" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "printStackTrace")
-    add_medium "**printStackTrace() usage** | Lines: \`$lines\` | 💡 Use: Logger.error()"
-fi
-
-if grep -q "synchronized.*(" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "synchronized")
-    add_info "**Synchronization detected** | Lines: \`$lines\` | 📝 Verify: Thread safety requirements"
+    violation_details=$(get_violation_details "printStackTrace" "printStackTrace")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_medium_with_code "printStackTrace() usage|$line_num|\`$code_snippet\`|Use Logger.error()"
+        done <<< "$violation_details"
+    fi
 fi
 
 # Low Java Issues
 if grep -q "@Deprecated" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "@Deprecated")
-    add_low "**Deprecated API usage** | Lines: \`$lines\` | 💡 Update: Use recommended alternative"
+    violation_details=$(get_violation_details "@Deprecated" "Deprecated API")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_low_with_code "Deprecated API usage|$line_num|\`$code_snippet\`|Use alternative"
+        done <<< "$violation_details"
+    fi
 fi
 
 echo ""
@@ -170,55 +214,43 @@ echo ""
 
 # Critical React Issues
 if grep -q "this\.state\.\w*\s*=" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "this\.state\.")
-    add_critical "**Direct state mutation** | Lines: \`$lines\` | 💡 Use: \`this.setState()\`"
-fi
-
-if grep -q "props\.\w*\s*=" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "props\.")
-    add_critical "**Props mutation** (immutable) | Lines: \`$lines\` | ⚠️ Props are read-only"
-fi
-
-# High React Issues
-if grep -q "\.map.*(" "$DIFF_FILE"; then
-    if ! grep -q "key=" "$DIFF_FILE"; then
-        lines=$(get_line_numbers "\.map")
-        add_high "**Missing key prop in .map()** | Lines: \`$lines\` | 💡 Add: unique key for each item"
+    violation_details=$(get_violation_details "this\.state\." "State Mutation")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_critical_with_code "Direct state mutation|$line_num|\`$code_snippet\`|Use this.setState()"
+        done <<< "$violation_details"
     fi
 fi
 
+# High React Issues
 if grep -q "useEffect.*(" "$DIFF_FILE"; then
     if ! grep -q "useEffect.*\[" "$DIFF_FILE"; then
-        lines=$(get_line_numbers "useEffect")
-        add_high "**useEffect without deps array** | Lines: \`$lines\` | ⚠️ Causes: Infinite re-renders"
+        violation_details=$(get_violation_details "useEffect" "useEffect Issue")
+        if [ -n "$violation_details" ]; then
+            while IFS='|' read -r line_num code_snippet; do
+                add_high_with_code "useEffect without deps array|$line_num|\`$code_snippet\`|Infinite re-renders"
+            done <<< "$violation_details"
+        fi
     fi
 fi
 
 if grep -q "componentWillMount\|componentWillReceiveProps\|componentWillUpdate" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "componentWillMount\|componentWillReceiveProps\|componentWillUpdate")
-    add_high "**Deprecated lifecycle method** | Lines: \`$lines\` | 💡 Migrate: To modern alternatives"
-fi
-
-# Medium React Issues
-if grep -q "useState.*useState.*useState" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "useState")
-    add_medium "**Multiple useState calls** | Lines: \`$lines\` | 💡 Consider: useReducer for complex state"
-fi
-
-if grep -q "useEffect.*\[\]" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "useEffect.*\[\]")
-    add_info "**useEffect with empty deps** | Lines: \`$lines\` | 📝 Runs: Only once on mount"
+    violation_details=$(get_violation_details "componentWillMount\|componentWillReceiveProps\|componentWillUpdate" "Deprecated Lifecycle")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_high_with_code "Deprecated lifecycle method|$line_num|\`$code_snippet\`|Migrate to modern"
+        done <<< "$violation_details"
+    fi
 fi
 
 # Low React Issues
 if grep -q "var " "$DIFF_FILE"; then
-    lines=$(get_line_numbers "var ")
-    add_low "**Using 'var' keyword** | Lines: \`$lines\` | 💡 Modern: Use const/let"
-fi
-
-if grep -q "defaultProps.*=" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "defaultProps")
-    add_info "**defaultProps usage** | Lines: \`$lines\` | 📝 Modern: Use default parameters"
+    violation_details=$(get_violation_details "var " "var keyword")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_low_with_code "Using 'var' keyword|$line_num|\`$code_snippet\`|Use const/let"
+        done <<< "$violation_details"
+    fi
 fi
 
 echo ""
@@ -229,30 +261,31 @@ echo ""
 
 # High Code Quality Issues
 if grep -q "debugger;" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "debugger")
-    add_high "**Debugger statement** | Lines: \`$lines\` | ⚠️ Remove: Before production"
+    violation_details=$(get_violation_details "debugger" "Debugger")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_high_with_code "Debugger statement|$line_num|\`$code_snippet\`|Remove before production"
+        done <<< "$violation_details"
+    fi
 fi
 
 # Medium Code Quality Issues
 if grep -q "console\.log\|console\.error\|console\.warn" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "console\.")
-    add_medium "**Console statements** | Lines: \`$lines\` | 💡 Remove: Or use proper logging"
+    violation_details=$(get_violation_details "console\." "Console")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_medium_with_code "Console statements|$line_num|\`$code_snippet\`|Use proper logging"
+        done <<< "$violation_details"
+    fi
 fi
 
 if grep -q "TODO\|FIXME" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "TODO\|FIXME")
-    add_medium "**TODO/FIXME comments** | Lines: \`$lines\` | 💡 Action: Address before merge"
-fi
-
-# Low Code Quality Issues
-if grep -q "any\s*;" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "any")
-    add_low "**TypeScript 'any' type** | Lines: \`$lines\` | 💡 Improve: Use specific types"
-fi
-
-if grep -q "//.*console\.log" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "//.*console\.log")
-    add_low "**Commented debug code** | Lines: \`$lines\` | 💡 Clean up: Remove dead code"
+    violation_details=$(get_violation_details "TODO\|FIXME" "TODO/FIXME")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_medium_with_code "TODO/FIXME comment|$line_num|\`$code_snippet\`|Address before merge"
+        done <<< "$violation_details"
+    fi
 fi
 
 echo ""
@@ -263,50 +296,40 @@ echo ""
 
 # High Performance Issues
 if grep -q "SELECT \*\|select \*" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "SELECT \*\|select \*")
-    add_high "**SELECT * query** | Lines: \`$lines\` | 💡 Optimize: Specify needed columns"
-fi
-
-if grep -q "N+1\|n+1.*query\|n+1.*problem" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "N+1\|n+1")
-    add_high "**N+1 query problem** | Lines: \`$lines\` | 💡 Solution: Use JOIN or batch loading"
+    violation_details=$(get_violation_details "SELECT \*\|select \*" "SELECT *")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_high_with_code "SELECT * query|$line_num|\`$code_snippet\`|Specify columns"
+        done <<< "$violation_details"
+    fi
 fi
 
 # Medium Performance Issues
 if grep -q "\.map.*\.map" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "\.map.*\.map")
-    add_medium "**Nested .map() loops** | Lines: \`$lines\` | ⚠️ Complexity: O(n²) - optimize if large"
-fi
-
-if grep -q "for.*for" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "for.*for")
-    add_medium "**Nested for loops** | Lines: \`$lines\` | 📝 Review: Algorithm complexity"
-fi
-
-# Low Performance Issues
-if grep -q "JSON\.parse.*JSON\.stringify" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "JSON\.parse.*JSON\.stringify")
-    add_low "**JSON deep clone** | Lines: \`$lines\` | 💡 Alternative: structuredClone() or library"
-fi
-
-if grep -q "setTimeout.*0" "$DIFF_FILE"; then
-    lines=$(get_line_numbers "setTimeout.*0")
-    add_info "**setTimeout with 0ms** | Lines: \`$lines\` | 📝 Note: Defers to next tick"
+    violation_details=$(get_violation_details "\.map.*\.map" "Nested map")
+    if [ -n "$violation_details" ]; then
+        while IFS='|' read -r line_num code_snippet; do
+            add_medium_with_code "Nested .map() loops|$line_num|\`$code_snippet\`|O(n²) complexity"
+        done <<< "$violation_details"
+    fi
 fi
 
 echo ""
 echo "---"
 echo ""
 
-# Print Issues by Priority
+# Print Issues by Priority in Tabular Format
 echo "## 📋 Detailed Issue Report"
 echo ""
 
 if [ $critical_issues -gt 0 ]; then
     echo "### 🚨 CRITICAL ISSUES ($critical_issues)"
     echo ""
+    echo "| Issue | Line | Code Snippet | Impact |"
+    echo "|-------|------|--------------|--------|"
     for issue in "${critical_list[@]}"; do
-        echo "- $issue"
+        IFS='|' read -r issue_type line_num code_snippet impact <<< "$issue"
+        echo "| $issue_type | $line_num | $code_snippet | $impact |"
     done
     echo ""
 fi
@@ -314,8 +337,11 @@ fi
 if [ $high_issues -gt 0 ]; then
     echo "### ⚠️ HIGH PRIORITY ISSUES ($high_issues)"
     echo ""
+    echo "| Issue | Line | Code Snippet | Impact |"
+    echo "|-------|------|--------------|--------|"
     for issue in "${high_list[@]}"; do
-        echo "- $issue"
+        IFS='|' read -r issue_type line_num code_snippet impact <<< "$issue"
+        echo "| $issue_type | $line_num | $code_snippet | $impact |"
     done
     echo ""
 fi
@@ -323,8 +349,11 @@ fi
 if [ $medium_issues -gt 0 ]; then
     echo "### ⚡ MEDIUM PRIORITY ISSUES ($medium_issues)"
     echo ""
+    echo "| Issue | Line | Code Snippet | Impact |"
+    echo "|-------|------|--------------|--------|"
     for issue in "${medium_list[@]}"; do
-        echo "- $issue"
+        IFS='|' read -r issue_type line_num code_snippet impact <<< "$issue"
+        echo "| $issue_type | $line_num | $code_snippet | $impact |"
     done
     echo ""
 fi
@@ -332,8 +361,11 @@ fi
 if [ $low_issues -gt 0 ]; then
     echo "### ℹ️ LOW PRIORITY ISSUES ($low_issues)"
     echo ""
+    echo "| Issue | Line | Code Snippet | Impact |"
+    echo "|-------|------|--------------|--------|"
     for issue in "${low_list[@]}"; do
-        echo "- $issue"
+        IFS='|' read -r issue_type line_num code_snippet impact <<< "$issue"
+        echo "| $issue_type | $line_num | $code_snippet | $impact |"
     done
     echo ""
 fi
@@ -341,8 +373,11 @@ fi
 if [ $info_items -gt 0 ]; then
     echo "### 📝 INFORMATIONAL ($info_items)"
     echo ""
+    echo "| Issue | Line | Code Snippet | Note |"
+    echo "|-------|------|--------------|------|"
     for item in "${info_list[@]}"; do
-        echo "- $item"
+        IFS='|' read -r issue_type line_num code_snippet note <<< "$item"
+        echo "| $issue_type | $line_num | $code_snippet | $note |"
     done
     echo ""
 fi
