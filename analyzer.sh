@@ -1,267 +1,178 @@
 #!/bin/bash
-#
-# Simple Code Analyzer for PR Review
-# Analyzes code changes for common issues
-#
+# Simple Code Analyzer for PR Review - Java & React
 
 DIFF_FILE=$1
 
 if [ ! -f "$DIFF_FILE" ]; then
-    echo "❌ Error: Diff file not found"
+    echo "Error: Diff file not found"
     exit 1
 fi
 
-echo "================================================"
-echo "🔍 PR Code Analysis Report (Java & React)"
-echo "================================================"
+echo "========================================"
+echo "PR Code Analysis Report"
+echo "========================================"
 echo ""
 
 # Initialize counters
 security_issues=0
-code_quality_issues=0
-performance_issues=0
 java_issues=0
 react_issues=0
+code_quality_issues=0
+performance_issues=0
 
-# Security checks
-echo "🔒 SECURITY ANALYSIS"
-echo "-------------------"
-
-if grep -q "eval\|exec\|system\|shell_exec\|Runtime\.getRuntime" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: Dangerous function detected (eval/exec/Runtime)"
-    security_issues=$((security_issues + 1))
-fi
+# Security Analysis
+echo "SECURITY ANALYSIS"
+echo "-----------------"
 
 if grep -q "password\s*=\s*['\"]" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: Hardcoded password detected"
+    echo "WARNING: Hardcoded password detected"
     security_issues=$((security_issues + 1))
 fi
 
 if grep -q "api[_-]?key\s*=\s*['\"]" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: Hardcoded API key detected"
+    echo "WARNING: Hardcoded API key detected"
     security_issues=$((security_issues + 1))
 fi
 
 if grep -q "dangerouslySetInnerHTML" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: dangerouslySetInnerHTML usage (XSS risk)"
+    echo "WARNING: dangerouslySetInnerHTML usage (XSS risk)"
     security_issues=$((security_issues + 1))
 fi
 
-if grep -q "TODO.*security\|FIXME.*security" "$DIFF_FILE"; then
-    echo "ℹ️  INFO: Security TODO/FIXME found"
-fi
-
 if [ $security_issues -eq 0 ]; then
-    echo "✅ No obvious security issues detected"
+    echo "OK: No security issues"
 fi
 
 echo ""
 
-# Java-specific checks
-echo "☕ JAVA-SPECIFIC ANALYSIS"
-echo "-------------------------"
+# Java Analysis
+echo "JAVA ANALYSIS"
+echo "-------------"
 
 if grep -q "System\.out\.println\|System\.err\.println" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: System.out/err usage (use logging framework)"
+    echo "WARNING: System.out usage (use logging)"
     java_issues=$((java_issues + 1))
 fi
 
 if grep -q "printStackTrace()" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: printStackTrace() usage (use logger)"
+    echo "WARNING: printStackTrace() (use logger)"
     java_issues=$((java_issues + 1))
 fi
 
 if grep -q "catch.*Exception.*{\s*}" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: Empty catch block detected"
+    echo "WARNING: Empty catch block"
     java_issues=$((java_issues + 1))
 fi
 
-if grep -q "\.equals.*null\|null.*\.equals" "$DIFF_FILE"; then
-    echo "❗ CRITICAL: Potential NullPointerException"
+if grep -q "\.equals.*null" "$DIFF_FILE"; then
+    echo "CRITICAL: Potential NullPointerException"
     java_issues=$((java_issues + 1))
 fi
 
-if grep -q "new Thread\|\.start()" "$DIFF_FILE"; then
-    echo "ℹ️  INFO: Thread usage detected (verify thread safety)"
-    java_issues=$((java_issues + 1))
-fi
-
-if grep -q "Connection\|Statement\|ResultSet" "$DIFF_FILE" && ! grep -q "try.*finally\|try-with-resources" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: Database resources may not be closed properly"
-    java_issues=$((java_issues + 1))
-fi
-
-if grep -q "@Deprecated" "$DIFF_FILE"; then
-    echo "ℹ️  INFO: Deprecated annotation found"
+if grep -q "Connection\|Statement\|ResultSet" "$DIFF_FILE"; then
+    echo "INFO: Database resources - verify proper closure"
 fi
 
 if [ $java_issues -eq 0 ]; then
-    echo "✅ No Java-specific issues detected"
+    echo "OK: No Java issues"
 fi
 
 echo ""
 
-# React-specific checks
-echo "⚛️  REACT-SPECIFIC ANALYSIS"
-echo "---------------------------"
+# React Analysis
+echo "REACT ANALYSIS"
+echo "--------------"
 
-if grep -q "\.map(.*=>" "$DIFF_FILE" && ! grep -q "key=" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: .map() without key prop"
-    react_issues=$((react_issues + 1))
-fi
-
-if grep -q "useState\|useEffect\|useCallback\|useMemo" "$DIFF_FILE"; then
-    echo "ℹ️  INFO: React hooks detected - verify rules of hooks"
-    
-    if grep -q "useEffect.*\[\]" "$DIFF_FILE"; then
-        echo "ℹ️  INFO: useEffect with empty deps (runs once)"
-    fi
-    
-    if grep -q "useEffect.*{" "$DIFF_FILE" && ! grep -q "useEffect.*\[" "$DIFF_FILE"; then
-        echo "⚠️  WARNING: useEffect without dependency array"
+if grep -q "\.map(.*=>" "$DIFF_FILE"; then
+    if ! grep -q "key=" "$DIFF_FILE"; then
+        echo "WARNING: map() without key prop"
         react_issues=$((react_issues + 1))
     fi
 fi
 
-if grep -q "this\.state\.\w*\s*=" "$DIFF_FILE" && ! grep -q "setState" "$DIFF_FILE"; then
-    echo "❗ CRITICAL: Direct state mutation detected"
+if grep -q "useEffect" "$DIFF_FILE"; then
+    if ! grep -q "useEffect.*\[" "$DIFF_FILE"; then
+        echo "WARNING: useEffect without dependency array"
+        react_issues=$((react_issues + 1))
+    fi
+fi
+
+if grep -q "this\.state\.\w*\s*=" "$DIFF_FILE"; then
+    echo "CRITICAL: Direct state mutation"
     react_issues=$((react_issues + 1))
 fi
 
-if grep -q "componentWillMount\|componentWillReceiveProps\|componentWillUp + java_issues + react_issues))
-
-echo "Security Issues: $security_issues"
-echo "Java-Specific Issues: $java_issues"
-echo "React-Specific Issues: $react_issues"
-echo "Code Quality Issues: $code_quality_issues"
-echo "Performance Issues: $performance_issues"
-echo "---"
-echo "Total Issues: $total_issues"
-
-if [ $total_issues -eq 0 ]; then
-    echo ""
-    echo "✅ All automated checks passed!"
-else
-    echo ""
-    echo "⚠️  Please review the issues above"
+if grep -q "componentWillMount\|componentWillReceiveProps" "$DIFF_FILE"; then
+    echo "WARNING: Deprecated lifecycle method"
+    react_issues=$((react_issues + 1))
 fi
 
-echo ""
-echo "💡 Note: This is a basic automated analysis for Java & React."
-echo "   AI review will provide deeper, context-aware
+if grep -q "var " "$DIFF_FILE"; then
+    echo "WARNING: var keyword (use const/let)"
+    react_issues=$((react_issues + 1))
+fi
+
 if [ $react_issues -eq 0 ]; then
-    echo "✅ No React-specific issues detected"
+    echo "OK: No React issues"
 fi
 
 echo ""
 
-# General Code Quality checks
-echo "📊 CODE QUALITY ANALYSIS"
-echo "------------------------"
+# Code Quality
+echo "CODE QUALITY"
+echo "------------"
 
-if grep -q "console\.log\|console\.error\|console\.warn" "$DIFF_FILE"; then
-    echo "ℹ️  INFO: Console statements found (remove before production)"
+if grep -q "console\.log" "$DIFF_FILE"; then
+    echo "INFO: Console statements found"
     code_quality_issues=$((code_quality_issues + 1))
 fi
 
 if grep -q "debugger;" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: debugger statement found"
-    code_quality_issues=$((code_quality_issues + 1))
-fi
-
-if grep -q "TODO\|FIXME\|XXX\|HACK" "$DIFF_FILE"; then
-    echo "ℹ️  INFO: TODO/FIXME comments found"
-    code_quality_issues=$((code_quality_issues + 1))
-fi
-
-if grep -q "any\s*;" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: TypeScript 'any' type usage (reduce type safety)"
+    echo "WARNING: debugger statement"
     code_quality_issues=$((code_quality_issues + 1))
 fi
 
 if [ $code_quality_issues -eq 0 ]; then
-    echo "✅ No code quality issues detected"
+    echo "OK: No code quality issues"
 fi
 
 echo ""
 
-# Performance checks
-echo "⚡ PERFORMANCE ANALYSIS"
-echo "----------------------"
+# Performance
+echo "PERFORMANCE"
+echo "-----------"
 
-if grep -q "SELECT \*\|select \*" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: SELECT * query detected (specify columns)"
-    performance_issues=$((performance_issues + 1))
-fi
-
-if grep -q "N+1\|n\+1" "$DIFF_FILE"; then
-    echo "⚠️  WARNING: Potential N+1 query issue mentioned"
+if grep -q "SELECT \*" "$DIFF_FILE"; then
+    echo "WARNING: SELECT * query"
     performance_issues=$((performance_issues + 1))
 fi
 
 if grep -q "\.map(.*\.map(" "$DIFF_FILE"; then
-    echo "ℹ️  INFO: Nested .map() detected (verify O(n²) is acceptable)"
+    echo "INFO: Nested map() detected"
     performance_issues=$((performance_issues + 1))
 fi
 
-if grep -q "useEffect.*setInterval\|useEffect.*setTimeout" "$DIFF_FILE"; then
-    echo "ℹ️  INFO: Timer in useEffect (verify cleanup function)"
-fi
-
-if grep -q "JSON\.parse.*JSON\.stringify" "$DIFF_FILE"; then
-    echo "ℹ️  INFO: JSON parse/stringify for deep clone (consider alternatives)"
-fi
-
 if [ $performance_issues -eq 0 ]; then
-    echo "✅ No performance issues detected"
+    echo "OK: No performance issues"
 fi
 
 echo ""
+echo "========================================"
+echo "SUMMARY"
+echo "========================================"
 
-# File size check
-echo "📁 FILE SIZE ANALYSIS"
-echo "---------------------"
-
-large_files=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | while read file; do
-    if [ -f "$file" ]; then
-        size=$(wc -l < "$file" 2>/dev/null || echo 0)
-        if [ "$size" -gt 500 ]; then
-            echo "⚠️  $file: $size lines (consider splitting)"
-        fi
-    fi
-done)
-
-if [ -z "$large_files" ]; then
-    echo "✅ No excessively large files"
-else
-    echo "$large_files"
-fi
-
-echo ""
-
-# Summary
-echo "================================================"
-echo "📋 SUMMARY"
-echo "================================================"
-total_issues=$((security_issues + code_quality_issues + performance_issues + java_issues + react_issues))
+total_issues=$((security_issues + java_issues + react_issues + code_quality_issues + performance_issues))
 
 echo "Security Issues: $security_issues"
-echo "Java-Specific Issues: $java_issues"
-echo "React-Specific Issues: $react_issues"
-echo "Code Quality Issues: $code_quality_issues"
-echo "Performance Issues: $performance_issues"
-echo "---"
+echo "Java Issues: $java_issues"
+echo "React Issues: $react_issues"
+echo "Code Quality: $code_quality_issues"
+echo "Performance: $performance_issues"
 echo "Total Issues: $total_issues"
 
 if [ $total_issues -eq 0 ]; then
     echo ""
-    echo "✅ All automated checks passed!"
-else
-    echo ""
-    echo "⚠️  Please review the issues above"
+    echo "All checks passed!"
 fi
 
-echo ""
-echo "💡 Note: This is a basic automated analysis for Java & React."
-echo "   Manual review recommended for complex issues."
-echo "================================================"
+echo "========================================"
