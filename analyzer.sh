@@ -148,10 +148,8 @@ fi
 
 echo ""
 echo "💡 Note: This is a basic automated analysis for Java & React."
-echo "   AI review will provide deeper, context-aware
-if [ $react_issues -eq 0 ]; then
-    echo "✅ No React-specific issues detected"
-fi
+echo "   Manual review recommended for complex issues."
+echo "================================================"
 
 echo ""
 
