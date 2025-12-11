@@ -146,15 +146,19 @@ echo ""
 
 # Print table
 if [ ${#ISSUES_ARRAY[@]} -gt 0 ]; then
-    printf "\n%-12s %-12s %-20s %-6s %s\n" "SEVERITY" "TYPE" "FILE" "LINE" "ISSUE"
-    printf "%-12s %-12s %-20s %-6s %s\n" "----------" "----------" "----" "----" "-----"
+    echo ""
+    echo "| SEVERITY | TYPE | FILE | LINE | ISSUE |"
+    echo "|---|---|---|---|---|"
     
     for issue in "${ISSUES_ARRAY[@]}"; do
         IFS='|' read -r severity type filename line_num message <<< "$issue"
-        printf "%-12s %-12s %-20s %-6s %s\n" "$severity" "$type" "$filename" "$line_num" "$message"
+        echo "| $severity | $type | $filename | L$line_num | $message |"
     done
+    echo ""
 else
+    echo ""
     echo "No issues detected!"
+    echo ""
 fi
 
 echo ""
