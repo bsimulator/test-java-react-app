@@ -4,6 +4,12 @@ function UserList() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
     
+    // New violation: Direct DOM manipulation in React
+    const highlightUser = (userId) => {
+        // Anti-pattern: Direct DOM manipulation instead of React state
+        document.getElementById(`user-${userId}`).style.backgroundColor = 'yellow';
+    };
+    
     // Issue: useEffect without dependency array - runs on every render
     useEffect(() => {
         loadUsers();

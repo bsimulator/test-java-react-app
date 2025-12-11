@@ -11,6 +11,18 @@ public class UserService {
     private static final String DB_PASSWORD = "admin123";
     private static final String API_KEY = "sk-proj-1234567890";
     
+    // New violation: SQL Injection vulnerability
+    public void findUserByName(String username) {
+        try {
+            Statement stmt = DriverManager.getConnection("jdbc:mysql://localhost/mydb").createStatement();
+            // SQL Injection risk - using string concatenation
+            String query = "SELECT * FROM users WHERE username = '" + username + "'";
+            ResultSet rs = stmt.executeQuery(query);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
     public void loadAllUsers() {
         Connection conn = null;
         Statement stmt = null;
