@@ -243,9 +243,11 @@ echo ""
 echo "================================================"
 echo "📋 SUMMARY"
 echo "================================================"
-total_issues=$((security_issues + code_quality_issues + performance_issues))
+total_issues=$((security_issues + code_quality_issues + performance_issues + java_issues + react_issues))
 
 echo "Security Issues: $security_issues"
+echo "Java-Specific Issues: $java_issues"
+echo "React-Specific Issues: $react_issues"
 echo "Code Quality Issues: $code_quality_issues"
 echo "Performance Issues: $performance_issues"
 echo "---"
@@ -260,6 +262,6 @@ else
 fi
 
 echo ""
-echo "💡 Note: This is a basic automated analysis."
-echo "   AI review will provide deeper insights."
+echo "💡 Note: This is a basic automated analysis for Java & React."
+echo "   Manual review recommended for complex issues."
 echo "================================================"
