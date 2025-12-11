@@ -11,7 +11,7 @@ permissions:
 jobs:
   review:
     runs-on: ubuntu-latest
-    name: Review Pull Request
+    name: Automated Code Review
     
     steps:
       - name: Checkout code
@@ -33,44 +33,14 @@ jobs:
           git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD
       
       - name: Run Code Analyzer
-        id: analyze
         run: |
-          chmod +x ./analyzer.js
           node ./analyzer.js pr_diff.txt > analysis_result.txt
           cat analysis_result.txt
-      
-      - name: AI Code Review
-        uses: anc95/ChatGPT-CodeReview@main
+
+      - name: Post Review Comment
+        run: |
+          REVIEW_BODY=$(cat analysis_result.txt)
+          
+          gh pr comment ${{ github.event.pull_request.number }} --body "$REVIEW_BODY"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_API_ENDPOINT: https://api.openai.com/v1
-          MODEL: gpt-4-turbo-preview
-          PROMPT: |
-            You are reviewing Java and React code. Focus on:
-            
-            **Java:**
-            - NullPointerException risks
-            - Resource leaks (unclosed connections, streams)
-            - Thread safety issues
-            - Exception handling
-            - Memory leaks
-            - Best practices (logging, not System.out)
-            
-            **React:**
-            - Hooks rules violations
-            - Missing key props in lists
-            - State mutations
-            - useEffect dependency issues
-            - Component lifecycle issues
-            - Performance concerns (unnecessary re-renders)
-            
-            **General:**
-            - Security vulnerabilities
-            - Logic errors and bugs
-            - Code quality and maintainability
-            
-            Provide specific, actionable feedback with examples.
-          top_p: 1
-          temperature: 0.3
-          max_tokens: 3000
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
