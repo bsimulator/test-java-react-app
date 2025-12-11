@@ -146,32 +146,12 @@ echo ""
 
 # Print table
 if [ ${#ISSUES_ARRAY[@]} -gt 0 ]; then
-    printf "%-12s %-12s %-25s %-8s %s\n" "SEVERITY" "TYPE" "FILE" "LINE" "ISSUE"
-    printf "%-12s %-12s %-25s %-8s %s\n" "----------" "----------" "-----" "----" "-----"
+    printf "\n%-12s %-12s %-20s %-6s %s\n" "SEVERITY" "TYPE" "FILE" "LINE" "ISSUE"
+    printf "%-12s %-12s %-20s %-6s %s\n" "----------" "----------" "----" "----" "-----"
     
     for issue in "${ISSUES_ARRAY[@]}"; do
         IFS='|' read -r severity type filename line_num message <<< "$issue"
-        
-        case $severity in
-            CRITICAL)
-                color=$RED
-                severity_display="CRITICAL"
-                ;;
-            WARNING)
-                color=$YELLOW
-                severity_display="WARNING"
-                ;;
-            INFO)
-                color=$CYAN
-                severity_display="INFO"
-                ;;
-            *)
-                color=$NC
-                severity_display="INFO"
-                ;;
-        esac
-        
-        printf "${color}%-12s${NC} %-12s %-25s %-8s %s\n" "$severity_display" "$type" "$filename" "L$line_num" "$message"
+        printf "%-12s %-12s %-20s %-6s %s\n" "$severity" "$type" "$filename" "$line_num" "$message"
     done
 else
     echo "No issues detected!"
