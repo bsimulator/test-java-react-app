@@ -17,6 +17,36 @@ if (!DIFF_FILE || !fs.existsSync(DIFF_FILE)) {
 const diffContent = fs.readFileSync(DIFF_FILE, 'utf-8');
 const diffLines = diffContent.split('\n');
 
+// Parse diff to map line numbers to files
+const lineToFile = {};
+let currentFile = '';
+let currentLineNumber = 0;
+
+diffLines.forEach((line, index) => {
+    // Check for file headers: diff --git a/file.java b/file.java
+    if (line.startsWith('diff --git')) {
+        const match = line.match(/b\/(.+)$/);
+        if (match) {
+            currentFile = match[1];
+        }
+    }
+    // Check for hunk headers: @@ -10,5 +10,7 @@
+    else if (line.startsWith('@@')) {
+        const match = line.match(/@@ -\d+,?\d* \+(\d+),?\d* @@/);
+        if (match) {
+            currentLineNumber = parseInt(match[1]);
+        }
+    }
+    // Track line numbers for added/modified lines
+    else if (line.startsWith('+') && !line.startsWith('+++')) {
+        lineToFile[index + 1] = { file: currentFile, line: currentLineNumber };
+        currentLineNumber++;
+    }
+    else if (line.startsWith(' ')) {
+        currentLineNumber++;
+    }
+});
+
 // Issue storage
 const issues = {
     critical: [],
@@ -34,20 +64,25 @@ function findViolations(pattern, issueType, priority, impact) {
     
     diffLines.forEach((line, index) => {
         if (regex.test(line)) {
-            const lineNumber = index + 1;
-            // Clean the line - remove +/- and trim, limit to 100 chars
-            const cleanLine = line
-                .replace(/^[\+\-]\s*/, '')
-                .trim()
-                .substring(0, 100);
+            const diffLineNumber = index + 1;
+            const fileInfo = lineToFile[diffLineNumber];
             
-            if (cleanLine.length > 0) {
-                issues[priority].push({
-                    type: issueType,
-                    line: lineNumber,
-                    code: cleanLine,
-                    impact: impact
-                });
+            if (fileInfo) {
+                // Clean the line - remove +/- and trim, limit to 100 chars
+                const cleanLine = line
+                    .replace(/^[\+\-]\s*/, '')
+                    .trim()
+                    .substring(0, 100);
+                
+                if (cleanLine.length > 0) {
+                    issues[priority].push({
+                        type: issueType,
+                        file: fileInfo.file,
+                        line: fileInfo.line,
+                        code: cleanLine,
+                        impact: impact
+                    });
+                }
             }
         }
     });
@@ -62,14 +97,22 @@ function findViolationsGrouped(pattern, issueType, priority, impact) {
     
     diffLines.forEach((line, index) => {
         if (regex.test(line)) {
-            const lineNumber = index + 1;
-            const cleanLine = line
-                .replace(/^[\+\-]\s*/, '')
-                .trim()
-                .substring(0, 100);
+            const diffLineNumber = index + 1;
+            const fileInfo = lineToFile[diffLineNumber];
             
-            if (cleanLine.length > 0) {
-                violations.push({ lineNumber, cleanLine });
+            if (fileInfo) {
+                const cleanLine = line
+                    .replace(/^[\+\-]\s*/, '')
+                    .trim()
+                    .substring(0, 100);
+                
+                if (cleanLine.length > 0) {
+                    violations.push({ 
+                        file: fileInfo.file, 
+                        line: fileInfo.line, 
+                        cleanLine 
+                    });
+                }
             }
         }
     });
@@ -78,7 +121,8 @@ function findViolationsGrouped(pattern, issueType, priority, impact) {
         violations.slice(0, 3).forEach(v => {
             issues[priority].push({
                 type: issueType,
-                line: v.lineNumber,
+                file: v.file,
+                line: v.line,
                 code: v.cleanLine,
                 impact: impact
             });
@@ -325,12 +369,13 @@ Object.keys(priorityConfig).forEach(priority => {
     if (issueList.length > 0) {
         const config = priorityConfig[priority];
         console.log(`### ${config.emoji} ${config.label} (${issueList.length})\n`);
-        console.log('| Issue | Line | Code Snippet | Impact |');
-        console.log('|-------|------|--------------|--------|');
+        console.log('| Issue | File:Line | Code Snippet | Impact |');
+        console.log('|-------|-----------|--------------|--------|');
         
         issueList.forEach(issue => {
             const codeSnippet = `\`${issue.code.replace(/\|/g, '\\|')}\``;
-            console.log(`| ${issue.type} | ${issue.line} | ${codeSnippet} | ${issue.impact} |`);
+            const location = `\`${issue.file}:${issue.line}\``;
+            console.log(`| ${issue.type} | ${location} | ${codeSnippet} | ${issue.impact} |`);
         });
         
         console.log('');
